@@ -1,0 +1,34 @@
+{
+    "name": "norel",
+    "version": "0.0.1",
+    "description": "A Nodejs object relation manager",
+    "main": "index.js",
+    "scripts": {
+        "pretest": "./node_modules/.bin/knex migrate:latest --knexfile ./test/knexfile.js",
+        "test": "./node_modules/.bin/mocha"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/lykmapipo/norel"
+    },
+    "keywords": [
+        "knex",
+        "model"
+    ],
+    "author": "Lally Elias",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/lykmapipo/norel/issues"
+    },
+    "homepage": "https://github.com/lykmapipo/norel",
+    "dependencies": {
+        "bluebird": "^2.3.10",
+        "knex": "^0.7.3",
+        "lodash": "^2.4.1"
+    },
+    "devDependencies": {
+        "chai": "^1.9.2",
+        "mocha": "^2.0.1",
+        "sqlite3": "^3.0.2"
+    }
+}
