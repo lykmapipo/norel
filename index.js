@@ -14,10 +14,16 @@
 var path = require('path');
 var _ = require('lodash');
 var Promise = require('bluebird');
+var inflection = require('inflection');
 
 var rootPath = path.resolve(__dirname);
 var libPath = path.join(rootPath, 'lib');
 var pkg = require(path.join(rootPath, 'package'));
+
+var methods = require(path.join(libPath, 'methods'));
+var Relation = require(path.join(libPath, 'relation'));
+var Base = require(path.join(libPath, 'base'));
+var Builder = require(path.join(libPath, 'builder'));
 
 
 /**
@@ -39,6 +45,9 @@ function Norel() {
     //models registry
     this._models = {}
 };
+
+//expose methods in norel level
+Norel.prototype.methods = methods;
 
 
 /**
@@ -67,7 +76,7 @@ function Norel() {
  * @param  {Object} connection options to be passed to knex
  * @public
  */
-Norel.prototype.connect = function(options) {
+Norel.prototype.connect = function connect(options) {
     //if there is a connection exist return
     if (this._knex) {
         return;
@@ -100,6 +109,9 @@ Norel.prototype.connect = function(options) {
 
     //establish knex connection
     this._knex = require('knex')(options);
+
+    //set base knex
+    Base._knex = this._knex;
 };
 
 
@@ -154,9 +166,9 @@ Norel.prototype.transacting = Promise.method(function() {
  *
  * @public
  */
-Norel.prototype.raw = function(rawQuery) {
+Norel.prototype.raw = function raw(rawQuery) {
     return this._knex.raw(rawQuery);
-}
+};
 
 
 /**
@@ -175,18 +187,18 @@ Norel.prototype.raw = function(rawQuery) {
  *
  *
  * @param  {String} modelName       model name to be used for registration
- * @param  {Object} modelDefinition backbone sequel model definition
+ * @param  {Object} modelDefinition model definition
+ * @param  {Object} modelInstancePropeties model instance propeties
+ * @param  {Object} modelStaticProperties model static properties
  * @return {Object}                 a model that is already registered or created one
  *
  * @public
  */
-Norel.prototype.model = function(modelName, modelDefinition) {
-    //TODO clean this check up
-    if (!modelName && !modelDefinition) {
-        throw new Error('No model or model definition provided');
+Norel.prototype.model = function model(modelName, modelDefinition, modelInstanceProperties, modelStaticProperties) {
+    //is model name exist and is a string
+    if (!modelName && !_.isString(modelName)) {
+        throw new Error('Unknown model name definition');
     }
-
-    //TODO controll model re-registration
 
     //return existing model if no model definition
     if (modelName && !modelDefinition) {
@@ -198,12 +210,112 @@ Norel.prototype.model = function(modelName, modelDefinition) {
         }
     }
 
-    //register a model instance into a registry
-    this._models[modelName] = modelDefinition;
+    //is modelDefinition exist and is plain object
+    if (!modelDefinition && !_.isPlainObject(modelDefinition)) {
+        throw new Error('No model definition provided');
+    }
 
-    //return a model instance after registration
-    return this._models[modelName];
+    var tableName = inflection.tableize(inflection.pluralize(modelName));
 
+    //check for custome table name in model definition
+    if (modelDefinition.tableName) {
+        tableName = modelDefinition.tableName;
+    }
+
+    //build a model
+    var model = function(params) {
+        //TODO do we need params?
+        Base.call(this, params);
+    };
+
+    model._name = modelName;
+
+    /** save Model reference */
+    model.prototype.class = model;
+
+    /** save super class prototype reference */
+    model.prototype.super = Base.prototype;
+
+    //build model prototype
+    _.extend(model.prototype, Base.prototype, modelInstanceProperties);
+
+    //build model static
+    _.extend(model, Base, modelStaticProperties, {
+        _tableName: tableName
+    });
+
+    //build event handler
+    buildEventHandler(model);
+
+    buildRelation(model, modelDefinition);
+
+    buildKnexMethod(model);
+
+    //register model
+    this._models[model._name] = model;
+
+    return model;
+
+};
+
+function buildKnexMethod(model) {
+    methods
+        .concat(_.keys(Builder.prototype))
+        .forEach(function(method) {
+            //attach static mmethod to model
+            model[method] = function() {
+                //TODO move it out call it once and utilize it on iterations
+                var builder = new Builder(model);
+                return builder[method].apply(builder, arguments);
+            };
+        });
+    model.getKnex = function() {
+        return new Builder(model);
+    };
+};
+
+function buildRelation(model, definition) {
+    var proto = model.prototype;
+
+    if (definition.hasMany) {
+        buildRelation('hasMany', definition.hasMany);
+    }
+
+    if (definition.belongsTo) {
+        buildRelation('belongsTo', definition.belongsTo);
+    }
+
+    if (definition.hasOne) {
+        buildRelation('hasOne', definition.hasOne);
+    }
+
+    function buildRelation(type, options) {
+        options = _.isArray(options) ? options : [options];
+        _.each(options, function(item) {
+            var name = item.name || item.model;
+            proto.__defineGetter__(name, function() {
+                var target = utils.getModel(item.model);
+                return new Relation(this, type, target, item); //TODO Relation.call(...) is enougn
+            });
+        });
+    }
+};
+
+function buildEventHandler(model) {
+    var events = model._eventQueue = {
+        beforeCreate: [],
+        afterCreate: [],
+        beforeUpdate: [],
+        afterUpdate: []
+    };
+
+    model.register = function(name, callback) {
+        var queue = events[name];
+        if (!queue) {
+            throw new Error('not support event name' + name);
+        }
+        queue.push(callback);
+    };
 };
 
 //export new instance of Norel
