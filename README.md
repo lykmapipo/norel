@@ -139,3 +139,4 @@ $ npm test
   - [ ] `beforeFind`
   - [ ] `afterFind`
   - [ ] `afterFindOne`
+- [] Documentation
