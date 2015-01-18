@@ -1,68 +1,103 @@
 # norel 
 A Nodejs object relation manager
 
-It is built atop the [Knex Query Builder](http://knexjs.org/) ,
-borrow a lot from [knex-model](https://github.com/wcp1231/knex-model)
-and inspired by [Bookshelf.js](http://bookshelfjs.org/)
+It uses [Knex Query Builder](http://knexjs.org/) as a query builder and inspired by [Bookshelf.js](http://bookshelfjs.org/)
 
 ## Example
 
 ```js
-var Model = require('norel')(knex);
-var Promise = require('bluebird');
+//require norel
+var Norel = require('norel');
+var faker = require('faker');
 
-var User = Model.model('User', {
-  tableName: 'users',
-  hasMany: [
-    {
-      name: 'entries',
-      model: 'Entry',
-      key: 'user_id'
-    }
-  ]
-}, {
-  instanceMethod: function() {}
-});
+//establish database connection
+Norel.connect({
+                 client: 'mysql',
+                 connection: {
+                      host     : '127.0.0.1',
+                      user     : 'your_database_user',
+                      password : 'your_database_password',
+                      database : 'your_database_name'
+                     },
+                     pool: {
+                       min: 0,
+                       max: 7
+                     }
+              });
 
-var Entry = Model.model('Entry', {
-  tableName: 'entries',
-  belongsTo: {
-    name: 'author',
-    model: 'User',
-    key: 'user_id'
-  }
-});
+//define a model
+var User = norel
+            .model('User', {
+                tableName: 'users',
+                attributes: {
+                    email: {
+                        email: {
+                            message: "doesn't look like a valid email"
+                        }
+                    },
+                    username: {
+                        presence: true,
+                        length: {
+                            minimum: 6,
+                            message: "must be at least 6 characters"
+                        }
+                    },
+                    surname: {
+                        length: {
+                            maximum: 6,
+                            message: "must be at most 6 characters"
+                        },
+                        format: {
+                            pattern: "[a-z0-9]+",
+                            flags: "i",
+                            message: "can only contain a-z and 0-9"
+                        }
+                    },
+                    friends: {
+                        numericality: {
+                            onlyInteger: true,
+                            greaterThan: 0,
+                            lessThanOrEqualTo: 30
+                        }
+                    },
+                    country: {
+                        exclusion: {
+                            within: {
+                                jp: "Japan",
+                                ch: "China"
+                            },
+                            message: "^We don't support %{value} right now, sorry"
+                        }
+                    },
+                    updated_at: {
+                        datetime: true
+                    }
+                }
+            });
 
-User.register('beforeCreate', function(data) {
-  var datetime = new Date();
-  data.created_at = data.updated_at = data;
-});
-//  Support Promise
-User.register('afterCreate', function(newId) {
-  newId = newId[0];
-  return Entry.create({ title: 'create new user ' + newId });
-});
+//now queries
+//you can chain queries as in knex
+User
+    .insert({
+        username: faker.name.firstName(),
+        updated_at: faker.date.past()
+    })
+    .then(function(results) {
+        console.log(results);
+    }).catch(function(error) {
+        console.log(error);
+    });
 
-// same to knex('users').where(...).update({})
-User.where(...).update({...});
-User.where(...).delete();
-
-User.first('id', 1).then(function(user) {
-  return user.entries.create({
-    title: 'title'
-  });
-}).then(function(insertId) {
-  return user.entries.find();
-}).then(function(entries) {
-  console.log(entries);
-  return Promise.props({
-    isOk: entries[0].update({ title: 'updated' }),
-    deleteId: entries[1].delete()
-  });
-}).then(function(result) {
-  console.log(result);
-});
-
+User
+    .select()
+    .where({
+        username: faker.name.firstName()
+    })
+    .then(function(results) {
+        console.log(results);
+    }).catch(function(error) {
+        console.log(error);
+    });
 ```
 
 ##Test
