@@ -130,8 +130,15 @@ $ npm test
 - [ ] Return model instance(s) after query execution
 - [ ] Model custom validators
 - [ ] Relation `through`
-- [ ] Realtion `hasOne`
-- [ ] boardcast event
+- [ ] Relation `hasOne`
+- [ ] Relation `belongsTo`
+- [ ] Relation `hasMany`
+- [ ] Relation `hasMany`
+- [ ] Relation `habtm`
+- [ ] Relation `morphTo`
+- [ ] Relation `morphOne`
+- [ ] Relation `morphMany`
+- [ ] boardcast event / hooks
   - [ ] `beforeCreate`
   - [ ] `afterCreate`
   - [ ] `beforeUpdate`
