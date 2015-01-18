@@ -1,4 +1,5 @@
 var expect = require('chai').expect;
+var moment = require('moment');
 
 var norel = require('norel');
 
@@ -22,7 +23,7 @@ describe('norel', function() {
     it('should establish database connection', function(done) {
         norel
             .connect({
-                debug: true,
+                // debug: true,
                 client: 'sqlite3',
                 connection: {
                     filename: "./test/test.sqlite"
@@ -30,13 +31,14 @@ describe('norel', function() {
             });
 
         expect(norel._knex).to.not.be.null;
+
         done();
     });
 
     it('should not connect if connection is already established', function(done) {
         norel
             .connect({
-                debug: true,
+                // debug: true,
                 client: 'sqlite3',
                 connection: {
                     filename: "./test/test.sqlite"
@@ -74,12 +76,56 @@ describe('norel', function() {
     });
 
     it('should do be able to register a model', function(done) {
-        norel
+        var User = norel
             .model('User', {
-                tableName: 'users'
+                tableName: 'users',
+                attributes: {
+                    email: {
+                        email: {
+                            message: "doesn't look like a valid email"
+                        }
+                    },
+                    username: {
+                        presence: true,
+                        length: {
+                            minimum: 6,
+                            message: "must be at least 6 characters"
+                        }
+                    },
+                    surname: {
+                        length: {
+                            maximum: 6,
+                            message: "must be at most 6 characters"
+                        },
+                        format: {
+                            pattern: "[a-z0-9]+",
+                            flags: "i",
+                            message: "can only contain a-z and 0-9"
+                        }
+                    },
+                    friends: {
+                        numericality: {
+                            onlyInteger: true,
+                            greaterThan: 0,
+                            lessThanOrEqualTo: 30
+                        }
+                    },
+                    country: {
+                        exclusion: {
+                            within: {
+                                jp: "Japan",
+                                ch: "China"
+                            },
+                            message: "^We don't support %{value} right now, sorry"
+                        }
+                    },
+                    updated_at: {
+                        datetime: true
+                    }
+                }
             });
 
-        expect(norel.model('User')).to.be.a("function");
+        expect(User).to.be.a("function");
         done();
     });
 

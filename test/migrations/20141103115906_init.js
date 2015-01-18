@@ -20,6 +20,10 @@ exports.up = function(knex, Promise) {
             t.string('username')
                 .notNullable()
                 .unique();
+            t.string('surname');
+            t.string('email');
+            t.string('country');
+            t.integer('friends').defaultTo(0);
             t.timestamp('updated_at');
         }),
 

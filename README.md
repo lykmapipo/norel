@@ -1,8 +1,9 @@
 # norel 
 A Nodejs object relation manager
 
-It is built atop the [Knex Query Builder](http://knexjs.org/) and 
+It is built atop the [Knex Query Builder](http://knexjs.org/) ,
 borrow a lot from [knex-model](https://github.com/wcp1231/knex-model)
+and inspired by [Bookshelf.js](http://bookshelfjs.org/)
 
 ## Example
 
@@ -10,7 +11,7 @@ borrow a lot from [knex-model](https://github.com/wcp1231/knex-model)
 var Model = require('norel')(knex);
 var Promise = require('bluebird');
 
-var User = Model.define('User', {
+var User = Model.model('User', {
   tableName: 'users',
   hasMany: [
     {
@@ -23,7 +24,7 @@ var User = Model.define('User', {
   instanceMethod: function() {}
 });
 
-var Entry = Model.define('Entry', {
+var Entry = Model.model('Entry', {
   tableName: 'entries',
   belongsTo: {
     name: 'author',
@@ -64,17 +65,42 @@ User.first('id', 1).then(function(user) {
 
 ```
 
-## TODO
+##Test
+* Install all development dependencies
+```sh
+$ npm install --dev
+```
 
-- [x] test
-- [x] example
-- [x] Relation `through`
-- [x] Realtion `hasOne`
+* npm link norel
+```sh
+$ npm link
+$ npm link norel
+```
+
+* Then run the test
+```sh
+$ npm test
+```
+
+## TODO
+- [x] Norel
+- [x] Norel.connect
+- [x] Norel.model
+- [x] Norel.raw
+- [x] Norel.transacting
+- [x] Model
+- [x] Model static knex query builder methods
+- [x] Model instance insert, update, delete methods
+- [x] Model validation
+- [ ] Return model instance(s) after query execution
+- [ ] Model custom validators
+- [ ] Relation `through`
+- [ ] Realtion `hasOne`
 - [ ] boardcast event
-  - [x] `beforeCreate`
-  - [x] `afterCreate`
-  - [x] `beforeUpdate`
-  - [x] `afterCreate`
+  - [ ] `beforeCreate`
+  - [ ] `afterCreate`
+  - [ ] `beforeUpdate`
+  - [ ] `afterCreate`
   - [ ] `beforeFind`
   - [ ] `afterFind`
   - [ ] `afterFindOne`
